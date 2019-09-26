@@ -33,7 +33,7 @@ class DelimiterPanel(wx.Panel):
         
     def set_delimiters(self, dels):
         if dels is None:
-            dels = ""       
+            dels = ""    
         self.comma_box.SetValue(',' in dels)
         self.semicolon_box.SetValue(';' in dels)
         self.tab_box.SetValue('\t' in dels)        

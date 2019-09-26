@@ -107,12 +107,12 @@ class dataimporter():
     def get_reserved_categorycols(self, parser=None):
         if parser is None:
             parser = self.parser
-        rcatnames = ['Cell line', 'Category', 'FOV', 'Cell', 'Treatment', 'Time', 'Compartment']    
+        rcatnames = ['Category', 'FOV', 'Cell', 'Treatment', 'Time', 'Compartment']    
         rcatnames.extend([key for key in parser.get_regexpatterns()])
         return sorted(set(rcatnames))
     
     
-    def import_data(self, delimiter=None, hparser=None, preprocessor=None, nrows=None): 
+    def import_data(self, delimiter=None, hparser=None, preprocessor=None): 
         if delimiter is None:
             delimiter = self.defaultdelimiter    
         if hparser is None:
@@ -127,7 +127,7 @@ class dataimporter():
                 continue
             # columns defined by parser regexpatterns will use 'category' as dtype
             category_dtypes = {col:'object' for col in self.get_reserved_categorycols(hparser)}
-            df = pd.read_table(f, delimiter=delimiter, engine='python', dtype=category_dtypes, nrows=nrows)
+            df = pd.read_table(f, delimiter=delimiter, engine='python', dtype=category_dtypes)
             headers = hparser.parsefilename(f)
             for key in headers:
                 df[key] = headers[key]

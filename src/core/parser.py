@@ -8,7 +8,6 @@ Created on Fri May  4 04:02:09 2018
 
 import os
 import re
-import importlib
 
 def get_available_parsers(pkdir='core.parser'):
     import pkgutil
@@ -20,6 +19,7 @@ def get_available_parsers(pkdir='core.parser'):
 
     
 def instantiate_parser(fullname):
+    import importlib
     namesplit = fullname.rpartition('.')
     if len(namesplit) != 3:
         return None
@@ -32,7 +32,8 @@ def instantiate_parser(fullname):
     except Exception:
         parserinstance = None
     return parserinstance    
-    
+
+
 
 class defaultparser(object):
 
@@ -66,10 +67,9 @@ class defaultparser(object):
         
     def parsefilename(self, fname):
         components = {'Directory':os.path.dirname(fname), 'File':os.path.basename(fname)}
-        fname = fname.replace("\\",'/')
         for pattern in self.regexpatterns:    
             # convert \ in windows style path to / in POSIX style
-            match = re.search(self.regexpatterns[pattern], fname)
+            match = re.search(self.regexpatterns[pattern], fname.replace("\\",'/'))
             if match is not None:
                 matchstr = match.group(1)
                 if match.group(1) == '':
@@ -91,17 +91,6 @@ class no_parser(defaultparser):
 
     
         
-class celltype_compartment_fov_treatment_cell_parser(defaultparser):
-    
-    def init_patterns(self):
-        self.regexpatterns = {
-                'Cell line':r'.*/(.*?)/.*/',
-                'Compartment':r'.*/(.*?)/',
-                'FOV':r'.*/.*?[_-](.*?)[_-]',
-                'Treatment':r'.*/.*?[_-].*?[_-](.*?)[_-]',
-                'Cell':r'.*/.*?[_-].*?[_-].*?[_-](\d*?)\.'}
-
-
 class compartment_fov_treatment_cell_parser(defaultparser):
     
     def init_patterns(self):
@@ -147,22 +136,6 @@ class treatment_fov_cell_parser(defaultparser):
 
 
 
-class treatment_fov_time_parser(defaultparser):
-    
-    def init_patterns(self):
-        self.regexpatterns = {
-                'Treatment':r'.*/.*?[_-](.*?)[_-]',
-                'FOV':r'.*/.*?[_-].*?[_-](.*?)[_-]',
-                'Time':r'.*/.*?[_-].*?[_-].*?[_-](\d*?)\.'}
-
-
-
-class treatment_time_parser(defaultparser):
-    
-    def init_patterns(self):
-        self.regexpatterns = {
-                'Treatment':r'.*/.*?[_-](.*?)[_-]',
-                'Time':r'.*/.*?[_-].*?[_-](\d*?)\.'}
 
 #class hyphenparser(defaultparser):
 #    

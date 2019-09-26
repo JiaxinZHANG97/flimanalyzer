@@ -37,17 +37,15 @@ def save_dataframe(parent, title, data, filename, wildcard="txt files (*.txt)|*.
     with wx.FileDialog(parent, title, wildcard=wildcard, style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT) as fileDialog:    
         fileDialog.SetFilename(fix_filename(filename))
         if fileDialog.ShowModal() == wx.ID_CANCEL:
-            return None
+            return False
         fname = fileDialog.GetPath()                
         try:
             data.reset_index()
-            # if indx was flattened in analyzer.summarize_data, multiindex col values were joined with '\n'--> revert here 
-            #data.columns = [c.replace('\n', ' ') for c in data.columns.values]
             data.to_csv(fname, index=saveindex, sep='\t')
         except IOError:
             wx.MessageBox('Error saving data in file %s' % fname, 'Error', wx.OK)
-            return None
-        return fname    
+            return False
+        return True    
             
         
 
@@ -55,7 +53,7 @@ def save_figure(parent, title, fig, filename, wildcard="all files (*.*)|*.*", dp
     with wx.FileDialog(parent, title, wildcard=wildcard, style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT) as fileDialog:    
         fileDialog.SetFilename(fix_filename(filename))
         if fileDialog.ShowModal() == wx.ID_CANCEL:
-            return None
+            return False
         fname = fileDialog.GetPath()                
         try:
             if legend is not None:
@@ -64,90 +62,13 @@ def save_figure(parent, title, fig, filename, wildcard="all files (*.*)|*.*", dp
                 fig.savefig(fname, dpi=dpi, bbox_inches='tight')            
         except IOError:
             wx.MessageBox('Error saving figure in file %s' % fname, 'Error', wx.OK)
-            return None
-        return fname    
+            return False
+        return True    
             
-
-class SelectGroupsDlg(wx.Dialog):
-
-    def __init__(self, parent, title, groups=[]):
-        wx.Dialog.__init__(self, parent, wx.ID_ANY, title)
         
-        # 5 col gridsizer
-        mainsizer = wx.BoxSizer(wx.HORIZONTAL)
-        cbsizer = wx.GridSizer(5, 0, 0)
-        if groups is None:
-            groups = []
-        self.cboxes = {}    
-        for g in groups:
-            cb = wx.CheckBox(self,wx.ID_ANY,g)
-            cb.SetValue(True)
-            self.cboxes[g] = cb
-            cbsizer.Add(cb, 0, wx.ALL, 5)
-        selectbsizer = wx.BoxSizer(wx.VERTICAL)
-        self.selectAllButton = wx.Button(self, label="Select All")
-        self.selectAllButton.Bind(wx.EVT_BUTTON, self.OnSelectAll)
-        selectbsizer.Add(self.selectAllButton, 0, wx.ALL|wx.EXPAND, 5)
-        self.deselectAllButton = wx.Button(self, label="Deselect All")
-        self.deselectAllButton.Bind(wx.EVT_BUTTON, self.OnDeselectAll)
-        selectbsizer.Add(self.deselectAllButton, 0, wx.ALL|wx.EXPAND, 5)
-        
-        buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.okButton = wx.Button(self, label="OK", pos=(110,160))
-        self.okButton.Bind(wx.EVT_BUTTON, self.OnOK)
-        buttonsizer.Add(self.okButton, 0, wx.ALL, 10)
-        self.cancelButton = wx.Button(self, label="Cancel", pos=(210,160))
-        self.cancelButton.Bind(wx.EVT_BUTTON, self.OnQuit)
-        buttonsizer.Add(self.cancelButton, 0, wx.ALL, 10)
-        
-        mainsizer.Add(cbsizer, 0, wx.ALIGN_CENTER, 5)
-        mainsizer.Add(wx.StaticLine(self,style=wx.LI_VERTICAL), 0, wx.ALL|wx.EXPAND, 5)
-        mainsizer.Add(selectbsizer, 0, wx.ALIGN_CENTER, 5)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(mainsizer, 0, wx.ALIGN_CENTER, 5)
-        sizer.Add(buttonsizer, 0, wx.ALIGN_CENTER, 5)
-        self.SetSizer(sizer)
-        
-        self.Bind(wx.EVT_CLOSE, self.OnQuit)
-        self.SetLayoutAdaptationMode(wx.DIALOG_ADAPTATION_MODE_ENABLED)
-        self.DoLayoutAdaptation()
-        self.Show()
-
-        
-    def OnSelectAll(self, event):
-        for key in self.cboxes:
-            self.cboxes[key].SetValue(True)
-
-
-    def OnDeselectAll(self, event):
-        for key in self.cboxes:
-            self.cboxes[key].SetValue(False)
-
-
-    def OnQuit(self, event):
-        self.EndModal(wx.ID_CANCEL)
-
-
-    def get_selected(self):
-        selected = []
-        for key in self.cboxes:
-            if self.cboxes[key].GetValue():
-                selected.append(key)
-        return selected    
-        
-        
-    def OnOK(self, event):
-        if len(self.get_selected()) == 0:
-            wx.MessageDialog(self,'Select at least one function.')
-        else:    
-            self.EndModal(wx.ID_OK)
-
-
-
 class ConfigureCategoriesDlg(wx.Dialog):
-
     def __init__(self, parent, title='', bins=[], labels=[]):
-        wx.Dialog.__init__(self, parent, wx.ID_ANY, "Category Configuration: %s" % title, size= (650,220))
+        wx.Dialog.__init__(self, parent, wx.ID_ANY, "Category configuration: %s" % title, size= (650,220))
 #        self.bins = None
 #        self.labels = None
         self.panel = wx.Panel(self,wx.ID_ANY)

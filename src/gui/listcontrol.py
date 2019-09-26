@@ -8,9 +8,6 @@ Created on Sun May 20 08:45:35 2018
 
 import wx
 import wx.lib.mixins.listctrl as listmix
-from wx.lib.pubsub import pub
-
-from gui.events import FILTERS_UPDATED, ANALYSIS_BINS_UPDATED
 
 #from wx.lib.newevent import NewEvent
 #FilterUpdatedEvent, EVT_FILTERUPDATED = NewEvent()
@@ -51,10 +48,9 @@ class AnalysisListCtrl(wx.ListCtrl, listmix.CheckListCtrlMixin, listmix.ListCtrl
     
 
     def fire_rowsupdated_event(self, items):
-        #event = ListCtrlUpdatedEvent(EVT_AU_TYPE, self.GetId())
-        #event.SetUpdatedItems(items)
-        #self.GetEventHandler().ProcessEvent(event)
-        pub.sendMessage(ANALYSIS_BINS_UPDATED, updateditems=items)        
+        event = ListCtrlUpdatedEvent(EVT_AU_TYPE, self.GetId())
+        event.SetUpdatedItems(items)
+        self.GetEventHandler().ProcessEvent(event)        
         
     
     def GetData(self):
@@ -157,8 +153,7 @@ class AnalysisListCtrl(wx.ListCtrl, listmix.CheckListCtrlMixin, listmix.ListCtrl
         checked = {}
         for idx in range(self.GetItemCount()):
             if self.IsChecked(idx):
-                key = self.GetItem(idx,self.get_key_col()).GetText() #.encode('utf-8')
-                #PROBLEM MULTIINDEX
+                key = self.GetItem(idx,self.get_key_col()).GetText()
                 checked[key] = self.data[key]
         return checked
             
@@ -199,7 +194,6 @@ class AnalysisListCtrl(wx.ListCtrl, listmix.CheckListCtrlMixin, listmix.ListCtrl
         rowkey = self.GetItem(index, self.get_key_col()).GetText()
 #        self.data[rowkey].select(flag)
         if self.enableevents:
-            # PROBLEM MULTIINDEX
             self.fire_rowsupdated_event({rowkey:self.data[rowkey]})
         
         
@@ -220,10 +214,9 @@ class FilterListCtrl(AnalysisListCtrl):
         
         
     def fire_rowsupdated_event(self, items):
-        #event = ListCtrlUpdatedEvent(EVT_FU_TYPE, self.GetId())
-        #event.SetUpdatedItems(items)
-        #self.GetEventHandler().ProcessEvent(event)        
-        pub.sendMessage(FILTERS_UPDATED, updateditems=items)        
+        event = ListCtrlUpdatedEvent(EVT_FU_TYPE, self.GetId())
+        event.SetUpdatedItems(items)
+        self.GetEventHandler().ProcessEvent(event)        
         
     
     def SetData(self, data, dropped={}, headers=[], types=[]):

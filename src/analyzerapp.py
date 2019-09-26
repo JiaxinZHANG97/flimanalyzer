@@ -6,15 +6,30 @@ Created on Mon May  7 14:38:04 2018
 @author: khs3z
 """
 
-import os
 import argparse
 import sys
-import core.parser as cp
-from gui.app import FlimAnalyzerApp
+import wx
+from gui.appframe import AppFrame
+from gui.listcontrol import EVT_FILTERUPDATED
 from core.flimanalyzer import flimanalyzer
-from core.configuration import Config, CONFIG_PARSERCLASS
 
 
+class FlimAnalyzerApp(wx.App):
+    
+    def __init__(self, flimanalyzer):
+        self.flimanalyzer = flimanalyzer
+        super(FlimAnalyzerApp,self).__init__()
+        self.Bind(EVT_FILTERUPDATED, self.OnFilterUpdated)
+
+        
+    def OnInit(self):
+        self.frame = AppFrame(self.flimanalyzer)    ## add two lines here
+        self.frame.Show(True)
+        return True
+
+
+    def OnFilterUpdated(self, event):
+        print "FLIMANALYZERAPP: filter updated:"
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -22,28 +37,31 @@ def parse_arguments():
     parser.add_argument("-e", "--exclude", nargs='+', default=[], help="exclude file from importing")
     parser.add_argument("-o", "--output", default=None, help="save imported dataset to file")
     parser.add_argument("-p", "--parser", default='core.parser.defaultparser', help="use this class to parse filename")
-    parser.add_argument("-c", "--config", default=None, help="configuration file, superseeds -p option")
     return parser.parse_args()
     
-
-
+def instantiate_parser(fullname):
+    import importlib
+    namesplit = fullname.rpartition('.')
+    if len(namesplit) != 3:
+        return None
+    modulename = fullname.rpartition('.')[0]
+    classname = fullname.rpartition('.')[2]
+    try:
+        module = importlib.import_module(modulename)
+        class_ = getattr(module, classname)
+        parserinstance = class_()
+    except Exception:
+        parserinstance = None
+    return parserinstance    
+    
 def noninteractive_run(fa, args):
     impo = fa.get_importer()
     a,s = impo.add_files(args.input, exclude=args.exclude)
-    print "\nFound %d file(s), skipping %d file(s)." % (a,s)
+    print "\nFound %d file(s), skipping %d file(s)" % (a,s)
     if len(impo.get_files())==0:
         return
-    if args.config:
-        if not os.path.isfile(args.config):
-            print "Configuration file %s does not exist." % args.config
-        else:
-            config = Config()
-            config.read_from_json(args.config)
-    else:
-        config = Config()
-        config.create_default()
-        config.update({CONFIG_PARSERCLASS:args.parser})        
-    hparser = cp.instantiate_parser(config.get(CONFIG_PARSERCLASS))
+       
+    hparser = instantiate_parser(args.parser)
     if hparser is None:
         print "Error instantiating filename parser %s" % args.parser
         return
@@ -75,7 +93,7 @@ def noninteractive_run(fa, args):
     analyzer = fa.get_analyzer()
     analyzer.add_columns([
             'NAD(P)H tm', 'NAD(P)H a2[%]/a1[%]', 
-            'NAD(P)H %', 'NADH %', 'NAD(P)H/NADH', 
+            'NAD(P)H %', 'NADH %', 'NADPH/NADH', 
             'trp tm', 'trp E%1', 'trp E%2', 'trp E%3', 'trp a1[%]/a2[%]', 
             'FAD tm', 'FAD a1[%]/a2[%]', 'FAD photons/NAD(P)H photons',
             'NAD(P)H tm/FAD tm',

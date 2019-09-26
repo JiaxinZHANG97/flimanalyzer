@@ -10,20 +10,9 @@ import numpy as np
 import pandas as pd
 import core.preprocessor
 import numbers
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-
 
 TRP_RZERO = 2.1
 ONE_SIXTH = 1.0/6 
-
-def percentile(n):
-    def percentile_(x):
-        return np.nanpercentile(x, n)
-    percentile_.__name__ = '%s percentile' % n
-    return percentile_    
-
-
 
 def nadph_perc(nadph_t2):
     return ((nadph_t2 - 1500) / (4400-1500)) * 100
@@ -89,22 +78,11 @@ class dataanalyzer():
                 'FAD a1[%]/a2[%]': [ratio, ['FAD a1[%]', 'FAD a2[%]']],
                 'FAD photons/NAD(P)H photons': [ratio, ['FAD photons', 'NAD(P)H photons']],
                 'NAD(P)H tm/FAD tm': [ratio,['NAD(P)H tm','FAD tm']],
-                'FLIRR': [ratio, ['NAD(P)H a2[%]', 'FAD a1[%]']],
+                'FLIRR (NAD(P)H a2[%]/FAD a1[%])': [ratio, ['NAD(P)H a2[%]', 'FAD a1[%]']],
                 'NADPH a2/FAD a1': [ratio, ['NAD(P)H a2', 'FAD a1']],
                 }
         self.rangefilters = {}
-        self.analysis_functions = {
-                'Summary Tables': {
-                        'functions': {'count':'count', 'min':'min', 'max':'max', 'mean':'mean', 'std':'std', 'median':'median', 'percentile(25)':percentile(25), 'percentile(75)':percentile(75)},},
-                'Mean Bar Plots': None, 
-                'Box Plots': None,
-                'KDE Plots': None,
-                'Frequency Histograms': None,
-                'Scatter Plots': None,
-                'Categorize': None,
-                'Principal Component Analysis': None,
-                }
-        
+
         
     def add_functions(self, newfuncs):
         if newfuncs is not None:
@@ -198,86 +176,24 @@ class dataanalyzer():
         return filtereddata, usedfilters, skippedfilters, len(alldroppedrows)
     
     
-
-
-    def summarize_data(self, titleprefix, data, cols, groups=None, aggs=['count', 'min', 'max', 'mean', 'std', 'median', 'percentile(25)', 'percentile(75)'], singledf=True, flattenindex=True):
+    def summarize_data(self, title, data, cols, groups=None, aggs=['count', 'min', 'max', 'median', 'mean', 'std']):
         summaries = {}
-        allfunc_dict = self.analysis_functions['Summary Tables']['functions']
-        agg_functions = [allfunc_dict[f] for f in aggs]
+        
         if cols is None or len(cols) == 0:
             return summaries
+        
         for header in cols:
             #categories = [col for col in self.flimanalyzer.get_importer().get_parser().get_regexpatterns()]
             allcats = [x for x in groups]
             allcats.append(header)
-            dftitle = ": ".join([titleprefix,header.replace('\n',' ')])
+            dftitle = title + ', '.join(groups) + " : " + header
             if groups is None or len(groups) == 0:
-                # create fake group by --> creates 'index' column that needs to removed from aggregate results
-                summary = data[allcats].groupby(lambda _ : True, group_keys=False).agg(agg_functions)
+                summaries[dftitle] = data[allcats].agg(aggs)
             else:                
-                summary = data[allcats].groupby(groups).agg(aggs)
-            if flattenindex:
-                summary.columns = ['\n'.join(col).strip() for col in summary.columns.values]    
-            summaries[dftitle] = summary
-        if singledf:
-            return {titleprefix:pd.concat([summaries[key] for key in summaries], axis=1)}
-        else:
-            return summaries
+                summaries[dftitle] = data[allcats].groupby(groups).agg(aggs)
+        return summaries
 
-
-    def get_analysis_options(self):
-        return [k for k in self.analysis_functions]
     
-    
-    def get_analysis_function(self, analysis_name):
-        return self.analysis_functions.get(analysis_name)
-    
-    
-    def pca(self, data, columns, keeporig=False, keepstd=True, explainedhisto=False, **kwargs):
-        data = data.dropna(how='any', axis=0)
-        if len(columns) == 1:
-            # reshape 1d array
-            data_no_class = data[columns].values.reshape((-1,1))
-        else:
-            data_no_class = data[columns].values
-        scaler = StandardScaler()
-        scaler.fit(data_no_class)
-        standard_data = scaler.transform(data_no_class)
-        standard_data
-                
-        pca = PCA(**kwargs)
-        principalComponents = pca.fit_transform(standard_data)
-
-        pca_df = pd.DataFrame(
-            data = principalComponents,
-            columns = ['Principal component %d' % x for x in range(1,principalComponents.shape[1]+1)])
-        if keeporig and keepstd:
-            standard_df = pd.DataFrame(
-                data = standard_data,
-                columns = ["%s\nstandard" % c for c in columns])
-            pca_df = pd.concat([data.select_dtypes(include='category'), data[columns], standard_df, pca_df] , axis = 1).reset_index(drop=True)
-        elif keeporig:    
-            pca_df = pd.concat([data.select_dtypes(include='category'), data[columns], pca_df] , axis = 1).reset_index(drop=True)
-        elif keepstd:
-            standard_df = pd.DataFrame(
-                data = standard_data,
-                columns = ["%s\nstandard" % c for c in columns])
-            pca_df = pd.concat([data.select_dtypes(include='category'), standard_df, pca_df] , axis = 1).reset_index(drop=True)
-        else:
-            pca_df = pd.concat([data.select_dtypes(include='category'), pca_df] , axis = 1).reset_index(drop=True)                        
-
-        pca_comp_label = 'PCA component'
-        explained_label = 'explained var ratio'
-        pca_explained_df = pd.DataFrame(data={
-                pca_comp_label: range(1,len(pca.explained_variance_ratio_)+1), 
-                explained_label: pca.explained_variance_ratio_})
-
-        if explainedhisto:
-            return pca_df, pca_explained_df, pca_explained_df.set_index(pca_comp_label).plot.bar()
-        else:
-            return pca_df, pca_explained_df
-        
-        
     def categorize_data(self, data, col, bins=[-1, 1], labels='1', normalizeto={}, grouping=[], dropna=True, use_minvalue=False, joinmaster=True, add_ascategory=True, category_colheader='Category'):
         if not grouping or len(grouping) == 0:
             return

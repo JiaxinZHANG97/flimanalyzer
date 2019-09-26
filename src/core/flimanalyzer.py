@@ -8,9 +8,10 @@ from importer import dataimporter
 from parser import defaultparser
 from preprocessor import defaultpreprocessor
 from analyzer import dataanalyzer
+from plots import stacked_histogram
 
+import numpy as np
 import pandas as pd
-import argparse
 
 class flimanalyzer():
     

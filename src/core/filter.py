@@ -8,40 +8,17 @@ Created on Fri May 18 07:53:29 2018
 
 class RangeFilter():
     
-    def __init__(self,name='', rangelow=0, rangehigh=100, allowedmin=None, allowedmax=None, selected=False, params=None):
-        if params:
-            self.set_params(params)
-        else:    
-            self.name = name
-            self.allowedmin = allowedmin
-            self.allowedmax = allowedmax
-            self.rangelow = rangelow
-            self.rangehigh = rangehigh
-            self.set_allowed(allowedmin, allowedmax)
-            self.set_range(rangelow,rangehigh)
-            self.selected = selected
+    def __init__(self,name,rangelow=0, rangehigh=100, allowedmin=None, allowedmax=None,selected=True):
+        self.name = name
+        self.allowedmin = allowedmin
+        self.allowedmax = allowedmax
+        self.rangelow = rangelow
+        self.rangehigh = rangehigh
+        self.set_allowed(allowedmin, allowedmax)
+        self.set_range(rangelow,rangehigh)
+        self.selected = selected
         
     
-    def get_params(self):
-        return {'name':self.name, 
-                'rangelow':self.rangelow, 
-                'rangehigh':self.rangehigh, 
-                'allowedmin':self.allowedmin, 
-                'allowedmax':self.allowedmax,
-                'selected':self.selected}
-    
-    
-    def set_params(self, params):
-        self.name = params.get('name','')
-        self.rangelow = params.get('rangelow',0) 
-        self.rangehigh = params.get('rangehigh',100)
-        self.allowedmin = params.get('allowedmin',None) 
-        self.allowedmax = params.get('allowedmax',None)
-        self.selected = params.get('selected', True)
-        self.set_allowed(self.allowedmin, self.allowedmax)
-        self.set_range(self.rangelow, self.rangehigh)
-        
-        
     def set_name(self, newname):
         if newname is not None and len(newname) > 0:
             self.name = newname
